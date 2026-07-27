@@ -1,7 +1,10 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect, get_object_or_404
 from django.contrib.auth import login
-from .forms import SignUpForm, AuthenticationForm
-from .models import Profile
+from .forms import SignUpForm, AuthenticationForm, ProjectForm, ProfileForm
+from .models import Profile, Project
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.models import User
 
 # Create your views here.
 def register(request):
@@ -17,7 +20,8 @@ def register(request):
     return render(request,"core/register.html", {"form":form})
 
 def home(request):
-    return render(request, "core/home.html")
+    projects=Project.objects.all().order_by("-published_at")
+    return render(request, "core/home.html", {"projects":projects})
 
 def user_login(request):
     if request.method=="POST":
@@ -30,3 +34,64 @@ def user_login(request):
     else:
         form=AuthenticationForm(request)
     return render(request,"core/user_login.html", {"form":form})
+
+@login_required
+def new_project(request):
+    if request.method=="POST":
+        form=ProjectForm(request.POST, request.FILES)
+        if form.is_valid():
+            project = form.save(commit=False)
+            project.author = request.user.profile
+            project.save()
+            form.save_m2m()
+            return redirect("home")
+    else:
+        form=ProjectForm()
+    return render(request, "core/new_project.html", {"form":form})
+
+@login_required
+def project_detail(request, pk):
+    project=get_object_or_404(Project, pk=pk)
+    return render(request, "core/project_detail.html", {"project":project})
+
+@login_required
+def project_edit(request, pk):
+    project=get_object_or_404(Project,pk=pk)
+    if request.user.profile != project.author:
+        raise PermissionDenied
+    if request.method == "POST":
+        form=ProjectForm(request.POST, request.FILES, instance=project)
+        if form.is_valid():
+            form.save()
+            return redirect("project_detail", pk=project.pk)
+    else:
+        form=ProjectForm(instance=project)
+    return render(request, "core/project_edit.html", {"form":form, "project":project})
+
+@login_required
+def project_delete(request,pk):
+    project=get_object_or_404(Project,pk=pk)
+    if request.user.profile != project.author:
+        raise PermissionDenied
+    if request.method=="POST":
+        project.delete()
+        return redirect("home")
+    
+    return render(request, "core/project_delete.html", {"project":project})
+
+@login_required
+def profile_edit(request):
+    if request.method == "POST":
+        form=ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid():
+            form.save()
+            return redirect("home")
+    else:
+        form=ProfileForm(instance=request.user.profile)
+    return render(request, "core/profile_edit.html", {"form":form})
+
+def profile_page(request, username):
+    user = get_object_or_404(User, username=username)
+    profile = user.profile
+
+    return render(request, "core/profile_page.html", {"profile": profile,})

@@ -33,7 +33,7 @@ class Profile(models.Model):
         return f"{self.user.username}'s Profile"
     
 class Project(models.Model):
-    author=models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="project")
+    author=models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="projects")
     title=models.CharField(max_length=100)
     description=models.TextField(max_length=500)
     screenshot = models.ImageField(upload_to='project_snips/', blank=True, null=True)

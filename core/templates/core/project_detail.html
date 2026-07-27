@@ -1,0 +1,57 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ project.title }}{% endblock %}
+
+{% block content %}
+
+<h1>{{ project.title }}</h1>
+
+{% if project.screenshot %}
+    <img src="{{ project.screenshot.url }}" alt="{{ project.title }}" width="400">
+{% endif %}
+
+<p><strong>Author:</strong> {{ project.author.user.username }}</p>
+
+<p><strong>Category:</strong> {{ project.category }}</p>
+
+<p><strong>Description:</strong></p>
+<p>{{ project.description }}</p>
+
+<p><strong>Technologies:</strong></p>
+<ul>
+    {% for skill in project.technologies.all %}
+        <li>{{ skill.name }}</li>
+    {% empty %}
+        <li>No technologies added.</li>
+    {% endfor %}
+</ul>
+
+{% if project.github_url %}
+<p><strong>GitHub:</strong>
+    <a href="{{ project.github_url }}" target="_blank">Github Repository</a>
+</p>
+{% endif %}
+
+{% if project.live_demo_url %}
+<p><strong>Live Demo:</strong>
+    <a href="{{ project.live_demo_url }}" target="_blank">Live Demo Redirect</a>
+</p>
+{% endif %}
+
+<p><strong>Tags:</strong> {{ project.tags }}</p>
+
+<p><strong>Published At:</strong> {{ project.published_at }}</p>
+
+{% if user.is_authenticated %}
+    {% if user.profile == project.author %}
+        <a href="{% url 'project_edit' pk=project.pk %}" class="btn btn-warning">
+            Edit Project
+        </a>
+
+        <a href="{% url 'project_delete' pk=project.pk %}" class="btn btn-danger">
+            Delete Project
+        </a>
+    {% endif %}
+{% endif %}
+
+{% endblock %}

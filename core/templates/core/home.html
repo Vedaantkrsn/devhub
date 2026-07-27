@@ -3,11 +3,95 @@
 {% block title %}Home - DevHub{% endblock %}
 
 {% block content %}
-    <h1>Welcome to DevHub</h1>
+    
+    <h2 class="mb-4">Latest Projects</h2>
 
-    {% if user.is_authenticated %}
-        <p>Hello, {{ user.username }}!</p>
+    {% if projects %}
+
+        {% for project in projects %}
+
+        <div class="card mb-4 shadow-sm">
+
+            <div class="card-body">
+
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{% url 'profile_page' username=project.author.user.username %}"
+                        class="text-decoration-none text-dark">
+                            <div class="d-flex align-items-center">
+                                {% if project.author.profile_picture %}
+                                    <img src="{{ project.author.profile_picture.url }}"
+                                        alt="{{ project.author.user.username }}"
+                                        class="rounded-circle me-2"
+                                        width="45"
+                                        height="45">
+                                {% endif %}
+                                <strong>{{ project.author.user.username }}</strong>
+                            </div>
+                        </a>
+                        <small class="text-muted">
+                            {{ project.published_at|timesince }} ago
+                        </small>
+                    </div>
+                    {% if user.is_authenticated and user.profile == project.author %}
+                        <span style="font-size:20px;">⋮</span>
+                    {% endif %}
+                </div>
+
+                <!-- Project Title -->
+                <h4 class="mt-3">
+                    <a href="{% url 'project_detail' pk=project.pk %}"
+                    class="text-decoration-none text-dark">
+                        {{ project.title }}
+                    </a>
+                </h4>
+
+                <!-- Description -->
+                <p>
+                    {{ project.description|truncatewords:25 }}
+                </p>
+
+                <!-- Cover Screenshot -->
+                {% if project.screenshot %}
+                    <a href="{% url 'project_detail' pk=project.pk %}">
+                        <img src="{{ project.screenshot.url }}"
+                            class="img-fluid rounded"
+                            alt="{{ project.title }}">
+                    </a>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-between mt-3">
+
+                    <div>
+                        ❤️ Like
+                    </div>
+
+                    <div>
+                        💬 Comment
+                    </div>
+
+                    <div>
+                        🔖 Bookmark
+                    </div>
+
+                    <div>
+                        ↗ Share
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
     {% else %}
-        <p>You are not logged in.</p>
+
+        <p>No projects have been posted yet.</p>
+
     {% endif %}
+
 {% endblock %}

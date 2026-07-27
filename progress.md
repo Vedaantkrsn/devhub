@@ -25,19 +25,53 @@ Full-stack Django social platform for developers to showcase projects. Single-ap
 - Logout — Django's built-in `LogoutView`, POST-only (Django 4.1+ requirement), wired via `<form method="post">` in navbar (not `<a href>`, which throws 405)
 - Templates: `base.html` (navbar + auth-state conditional), `register.html`, `user_login.html`, `home.html`
 - URL names: `register`, `home`, `user_login` (not `login`), `logout`
+- Settings added: `LOGIN_URL`, `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`, `MEDIA_URL`, `MEDIA_ROOT` + `static()` in root urls.py
 
-## Known gotchas hit (for future reference)
-- `NoReverseMatch` — happened from `{% url 'login' %}` when the actual url name was `user_login`. Always double check `name=` in urls.py matches `{% url %}` calls exactly.
-- `405 on logout` — Django's `LogoutView` requires POST, not GET, since Django 4.1+. Plain `<a>` tags won't work; needs a `<form method="post">` with `{% csrf_token %}`.
-- Stale dev server / cached page can make already-fixed code appear broken — always test from a fresh page load before assuming the code is wrong.
+## Phase 3: Projects Core — ✅ DONE
+- ✅ `ProjectForm` (ModelForm, explicit fields, excludes `author`/timestamps)
+- ✅ `new_project` view — `@login_required`, `commit=False` → set `author` → `save()` → `save_m2m()` pattern
+- ✅ `new_project.html` — `enctype="multipart/form-data"` included
+- ✅ Navbar "New Project" link wired
+- ✅ Full create flow tested end-to-end
+- ✅ `project_detail` view — uses `get_object_or_404(Project, pk=pk)` for clean 404s instead of unhandled 500 crash
+- ✅ `project_detail.html` — screenshot, author, category, description, technologies loop, GitHub/demo links (guarded with `{% if %}` since both are optional fields), tags, published date
+- ✅ `project_edit` view — `@login_required`, ownership check (`request.user.profile != project.author` → `raise PermissionDenied`), `instance=project` pattern for pre-fill + update
+- ✅ `project_edit.html` — same shape as new_project.html
+- ✅ `project_delete` view — ownership check, GET shows confirmation template, POST actually deletes + redirects to `home`
+- ✅ `project_delete.html` — confirmation page, `btn-danger`/`btn-secondary`, cancel link back to detail
+- ✅ Owner-only Edit/Delete buttons on `project_detail.html` — nested `{% if user.is_authenticated %}` → `{% if user.profile == project.author %}`, correctly guards against `AnonymousUser` never having `.profile`
+- URL naming: `project_detail`, `project_edit`, `project_delete` all standardized on `pk` as the kwarg (consistent across URL pattern + view signature + redirect calls)
+
+## Phase 2 loose end — ✅ CLOSED: Profile Edit
+- `ProfileForm` — ModelForm, explicit fields (`profile_picture`, `bio`, `organization`, `location`, `experience_level`, `skills`, `github_url`, `linkedin_url`, `portfolio_url`), excludes `user`/`joined_date`
+- `profile_edit` view — `@login_required`, no `pk`/`username` param, always operates on `request.user.profile` — safe by construction, no ownership check needed since there's nothing to tamper with in the URL
+- `profile_page` view — public, takes `username`, looks up via `get_object_or_404(User, username=username)` then `.profile`
+- URL ordering: `profile/edit/` placed **before** `profile/<str:username>/edit/` in urls.py — required, since `<str:username>` would otherwise greedily match the literal string "edit"
+- Considered changing to `profile/<username>/edit/` for REST-style consistency — deliberately rejected, since it would reintroduce a tamperable URL param requiring a manual ownership check, for zero functional gain over the current parameterless design
+- `profile_page.html` — avatar (guarded), bio/org/location (all guarded, optional fields), skills list, GitHub/LinkedIn/portfolio links (guarded), owner-only "Edit Profile" button, list of author's published projects via `profile.projects.all()`
+- Navbar "Profile" link wired to `{% url 'profile_page' username=user.username %}`
+- Tested: own profile loads, edit pre-fills and saves, `/profile/edit/` routes correctly (not caught as username), other users' profiles show no Edit button
+
+## Phase 4: Homepage Feed — ✅ DONE (core display)
+- `home` view — `Project.objects.all().order_by('-published_at')`, newest-first
+- `home.html` — X/Twitter-style card layout: author avatar (guarded) + username (linked to `profile_page`) + relative timestamp (`timesince` filter), project title (linked to detail), truncated description (`truncatewords:25`), guarded screenshot, placeholder Like/Comment/Bookmark/Share row (visual only, no functionality yet — that's Phase 5), owner-only three-dot menu placeholder
+- Empty-state handled (`{% if projects %}` / `{% else %}`)
+- Tested: ordering, truncation, timesince display, avatar links to correct profile
+
+- Still open from Phase 4 (per brief, non-core): global search bar, Popular Technologies / Suggested Developers sections. Hero section and Trending Projects are explicitly V2/future.
+
+
+
+## Known gotchas hit (additional)
+- `redirect()` and `{% url %}` calls must match the exact kwarg name used in the URL pattern (`pk` vs `project_id`) — same class of bug as the earlier `login`/`user_login` mismatch
+- Templates silently render blank for nonexistent model attributes (e.g. `{{ project.created_at }}` when the field is actually `published_at`) — no error, just empty output, easy to miss
+- Delete must never happen on GET — only POST — to avoid accidental deletion via prefetch/crawler/link preview
 
 ## Not yet done (still open)
 - Profile edit view (fill in bio/skills/links after bare registration)
-- `MEDIA_URL`/`MEDIA_ROOT` in settings.py + static() in root urls.py (needed once images are displayed)
-- `LOGIN_URL` in settings.py (needed once `@login_required` is used)
 - Reciprocal "Already have an account? Login" link on register.html
+- Multi-app split decision — deferred, revisit later
+- `get_category_display` for human-readable category label (optional polish)
 
-## Next: Phase 3 — Projects Core
-- Create/edit/delete project posts
-- "New Project" form (will need `@login_required`)
-- Project detail page
+## Next: Phase 5 — Interactions
+- Wire up Like, Comment, Bookmark, Share buttons for real (currently static placeholders on feed cards)

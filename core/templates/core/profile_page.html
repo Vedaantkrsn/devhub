@@ -1,0 +1,96 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ profile.user.username }}'s Profile{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="card shadow-sm p-4">
+
+        {% if profile.profile_picture %}
+            <img src="{{ profile.profile_picture.url }}"
+                 alt="{{ profile.user.username }}"
+                 class="rounded-circle mb-3"
+                 width="150"
+                 height="150">
+        {% endif %}
+
+        <h2>{{ profile.user.username }}</h2>
+
+        <p><strong>Experience:</strong> {{ profile.experience_level }}</p>
+
+        {% if profile.bio %}
+            <p><strong>Bio:</strong> {{ profile.bio }}</p>
+        {% endif %}
+
+        {% if profile.organization %}
+            <p><strong>Organization:</strong> {{ profile.organization }}</p>
+        {% endif %}
+
+        {% if profile.location %}
+            <p><strong>Location:</strong> {{ profile.location }}</p>
+        {% endif %}
+
+        <h5>Skills</h5>
+
+        <ul>
+            {% for skill in profile.skills.all %}
+                <li>{{ skill.name }}</li>
+            {% empty %}
+                <li>No skills added.</li>
+            {% endfor %}
+        </ul>
+
+        {% if profile.github_url %}
+            <p>
+                <strong>GitHub:</strong>
+                <a href="{{ profile.github_url }}" target="_blank">
+                    {{ profile.github_url }}
+                </a>
+            </p>
+        {% endif %}
+
+        {% if profile.linkedin_url %}
+            <p>
+                <strong>LinkedIn:</strong>
+                <a href="{{ profile.linkedin_url }}" target="_blank">
+                    {{ profile.linkedin_url }}
+                </a>
+            </p>
+        {% endif %}
+
+        {% if profile.portfolio_url %}
+            <p>
+                <strong>Portfolio:</strong>
+                <a href="{{ profile.portfolio_url }}" target="_blank">
+                    {{ profile.portfolio_url }}
+                </a>
+            </p>
+        {% endif %}
+        {% if user.is_authenticated and user.profile == profile %}
+            <a href="{% url 'profile_edit' %}" class="btn btn-primary mt-3">
+                Edit Profile
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<h3 class="mt-5">Projects</h3>
+{% for project in profile.projects.all %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>
+                <a href="{% url 'project_detail' pk=project.pk %}">
+                    {{ project.title }}
+                </a>
+            </h5>
+
+            <p>{{ project.description|truncatewords:20 }}</p>
+        </div>
+    </div>
+{% empty %}
+    <p>No projects published yet.</p>
+{% endfor %}
+
+{% endblock %}
