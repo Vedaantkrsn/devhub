@@ -65,7 +65,20 @@
                 <div class="d-flex justify-content-between mt-3">
 
                     <div>
-                        ❤️ Like
+                        <button class="like-btn btn btn-link text-decoration-none p-0"
+                                data-project-id="{{ project.pk }}">
+                            <span id="like-icon-{{ project.pk }}">
+                                {% if project.is_liked %}
+                                    ❤️
+                                {% else %}
+                                    🤍
+                                {% endif %}
+                            </span>
+                        </button>
+
+                        <span id="like-count-{{ project.pk }}">
+                            {{ project.likes.count }}
+                        </span>
                     </div>
 
                     <div>
@@ -93,5 +106,37 @@
         <p>No projects have been posted yet.</p>
 
     {% endif %}
+
+    {% csrf_token %}
+    <script>
+        const csrfToken = document.querySelector(
+            "[name=csrfmiddlewaretoken]"
+        ).value;
+        const likeButtons = document.querySelectorAll(".like-btn");
+
+        likeButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const projectId = button.dataset.projectId;
+
+                fetch(`/project/${projectId}/like/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById(`like-count-${projectId}`).textContent=data.likes_count;
+                    const likeIcon = document.getElementById(`like-icon-${projectId}`);
+
+                    if (data.liked) {
+                        likeIcon.textContent = "❤️";
+                    } else {
+                        likeIcon.textContent = "🤍";
+                    }
+                });
+            });
+        });
+        </script>
 
 {% endblock %}

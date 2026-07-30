@@ -13,4 +13,6 @@ urlpatterns = [
     path("project/<int:pk>/delete/", views.project_delete, name="project_delete"),
     path("profile/edit/", views.profile_edit, name="profile_edit"),
     path("profile/<str:username>/", views.profile_page, name="profile_page"),
+    path("project/<int:pk>/like/", views.like, name="like"),
+    path("project/<int:pk>/bookmark/", views.bookmark, name="bookmark"),
 ]
