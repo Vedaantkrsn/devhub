@@ -77,7 +77,7 @@
 </div>
 
 <h3 class="mt-5">Projects</h3>
-{% for project in profile.projects.all %}
+{% for project in projects %}
     <div class="card mb-3">
         <div class="card-body">
             <h5>
@@ -91,6 +91,28 @@
     </div>
 {% empty %}
     <p>No projects published yet.</p>
+{% endfor %}
+
+<hr class="my-5">
+<h3>Bookmarked Projects</h3>
+{% for project in bookmarked_projects %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>
+                <a href="{% url 'project_detail' pk=project.pk %}">
+                    {{ project.title }}
+                </a>
+            </h5>
+            <p>
+                {{ project.description|truncatewords:20 }}
+            </p>
+            <small class="text-muted">
+                by {{ project.author.user.username }}
+            </small>
+        </div>
+    </div>
+{% empty %}
+<p>No bookmarked projects yet.</p>
 {% endfor %}
 
 {% endblock %}

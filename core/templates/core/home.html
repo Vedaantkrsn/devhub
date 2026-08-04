@@ -35,7 +35,35 @@
                         </small>
                     </div>
                     {% if user.is_authenticated and user.profile == project.author %}
-                        <span style="font-size:20px;">⋮</span>
+                    <div class="dropdown">
+                        <button
+                            class="btn btn-link text-dark p-0"
+                            type="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item"
+                                href="{% url 'project_detail' pk=project.pk %}">
+                                    View Project
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item"
+                                href="{% url 'project_edit' pk=project.pk %}">
+                                    Edit Project
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger"
+                                href="{% url 'project_delete' pk=project.pk %}">
+                                    Delete Project
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                     {% endif %}
                 </div>
 
@@ -65,15 +93,11 @@
                 <div class="d-flex justify-content-between mt-3">
 
                     <div>
-                        <button class="like-btn btn btn-link text-decoration-none p-0"
+                        <button class="like-btn btn btn-link p-0"
                                 data-project-id="{{ project.pk }}">
-                            <span id="like-icon-{{ project.pk }}">
-                                {% if project.is_liked %}
-                                    ❤️
-                                {% else %}
-                                    🤍
-                                {% endif %}
-                            </span>
+                            <i id="like-icon-{{ project.pk }}"
+                                class="bi {% if project.is_liked %}bi-heart-fill{% else %}bi-heart{% endif %}">
+                            </i>
                         </button>
 
                         <span id="like-count-{{ project.pk }}">
@@ -82,29 +106,42 @@
                     </div>
 
                     <div>
-                        💬 Comment
+                        <div>
+                            <a href="{% url 'project_detail' pk=project.pk %}"
+                            class="text-decoration-none text-dark">
+
+                                <i class="bi bi-chat-dots"></i>
+
+                                <span id="comment-count-{{ project.pk }}">
+                                    {{ project.comments.count }}
+                                </span>
+
+                            </a>
+                        </div>
                     </div>
 
                     <div>
-                        🔖 Bookmark
+                        <button class="bookmark-btn btn btn-link p-0"
+                                data-project-id="{{ project.pk }}">
+                            <i id="bookmark-icon-{{ project.pk }}"
+                                class="bi {% if project.is_bookmarked %}bi-bookmark-fill{% else %}bi-bookmark{% endif %}">
+                            </i>
+                        </button>
+
+                        <span id="bookmark-count-{{ project.pk }}">
+                            {{ project.bookmarks.count }}
+                        </span>
                     </div>
 
                     <div>
                         ↗ Share
                     </div>
-
                 </div>
-
             </div>
-
         </div>
-
         {% endfor %}
-
     {% else %}
-
         <p>No projects have been posted yet.</p>
-
     {% endif %}
 
     {% csrf_token %}
@@ -113,6 +150,8 @@
             "[name=csrfmiddlewaretoken]"
         ).value;
         const likeButtons = document.querySelectorAll(".like-btn");
+        const bookmarkButtons = document.querySelectorAll(".bookmark-btn");
+        const commentForm = document.getElementById("comment-form");
 
         likeButtons.forEach(button => {
             button.addEventListener("click", function () {
@@ -130,13 +169,46 @@
                     const likeIcon = document.getElementById(`like-icon-${projectId}`);
 
                     if (data.liked) {
-                        likeIcon.textContent = "❤️";
+                        likeIcon.classList.remove("bi-heart");
+                        likeIcon.classList.add("bi-heart-fill");
                     } else {
-                        likeIcon.textContent = "🤍";
+                        likeIcon.classList.remove("bi-heart-fill");
+                        likeIcon.classList.add("bi-heart");
                     }
                 });
             });
         });
-        </script>
 
+        bookmarkButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const projectId = button.dataset.projectId;
+
+                fetch(`/project/${projectId}/bookmark/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+
+                    document.getElementById(`bookmark-count-${projectId}`).textContent =
+                        data.bookmarks_count;
+
+                    const bookmarkIcon = document.getElementById(`bookmark-icon-${projectId}`);
+
+                    if (data.bookmarked) {
+                        bookmarkIcon.classList.remove("bi-bookmark");
+                        bookmarkIcon.classList.add("bi-bookmark-fill");
+                    } else {
+                        bookmarkIcon.classList.remove("bi-bookmark-fill");
+                        bookmarkIcon.classList.add("bi-bookmark");
+                    }
+
+                });
+            });
+        });
+
+        
+        </script>
 {% endblock %}

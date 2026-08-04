@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import get_user_model
-from .models import Project, Profile
+from .models import Project, Profile, Comment
 
 User = get_user_model()
 
@@ -44,3 +44,18 @@ class ProfileForm(forms.ModelForm):
             "linkedin_url",
             "portfolio_url",
         ]
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model=Comment
+        fields= [
+            "content",
+        ]
+        widgets = {
+            "content": forms.Textarea(attrs={
+                "id": "comment-input",
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Write a comment..."
+            })
+        }

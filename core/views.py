@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect, get_object_or_404
 from django.contrib.auth import login
-from .forms import SignUpForm, AuthenticationForm, ProjectForm, ProfileForm
-from .models import Profile, Project, Like, Bookmark
+from .forms import SignUpForm, AuthenticationForm, ProjectForm, ProfileForm, CommentForm
+from .models import Profile, Project, Like, Bookmark, Comment
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
@@ -28,6 +28,12 @@ def home(request):
         projects=projects.annotate(
             is_liked=Exists(
                 Like.objects.filter(
+                    project=OuterRef("pk"),
+                    user=request.user.profile,
+                )
+            ),
+            is_bookmarked=Exists(
+                Bookmark.objects.filter(
                     project=OuterRef("pk"),
                     user=request.user.profile,
                 )
@@ -62,10 +68,28 @@ def new_project(request):
         form=ProjectForm()
     return render(request, "core/new_project.html", {"form":form})
 
-@login_required
+
 def project_detail(request, pk):
     project=get_object_or_404(Project, pk=pk)
-    return render(request, "core/project_detail.html", {"project":project})
+
+    if request.user.is_authenticated:
+        project.is_liked = Like.objects.filter(
+            project=project,
+            user=request.user.profile,
+        ).exists()
+
+        project.is_bookmarked = Bookmark.objects.filter(
+            project=project,
+            user=request.user.profile,
+        ).exists()
+    else:
+        project.is_liked= False
+        project.is_bookmarked= False
+    comment_form=CommentForm()
+    comments=project.comments.select_related("author", "author__user")
+    return render(request, "core/project_detail.html", {"project":project,
+                                                        "comment_form": comment_form,
+                                                        "comments": comments})
 
 @login_required
 def project_edit(request, pk):
@@ -106,8 +130,17 @@ def profile_edit(request):
 def profile_page(request, username):
     user = get_object_or_404(User, username=username)
     profile = user.profile
+    projects = Project.objects.filter(
+        author=profile
+    ).order_by("-published_at")
 
-    return render(request, "core/profile_page.html", {"profile": profile,})
+    bookmarked_projects = Project.objects.filter(
+        bookmarks__user=profile
+    ).order_by("-published_at")
+
+    return render(request, "core/profile_page.html", {"profile": profile, 
+                                                      "projects": projects,
+                                                      "bookmarked_projects": bookmarked_projects,})
 
 @login_required
 @require_POST
@@ -134,3 +167,29 @@ def bookmark(request,pk):
         "bookmarked": created,
         "bookmarks_count":project.bookmarks.count(),
     })
+
+@login_required
+@require_POST
+def comment(request,pk):
+    project=get_object_or_404(Project,pk=pk)
+    form=CommentForm(request.POST)
+    if form.is_valid():
+        comment=form.save(commit=False)
+        comment.author=request.user.profile
+        comment.project=project
+        comment.save()
+
+        return JsonResponse({
+            "success":True,
+            "username":comment.author.user.username,
+            "profile_picture": (
+                comment.author.profile_picture.url
+                if comment.author.profile_picture else ""
+            ),
+            "content": comment.content,
+            "created_at": "Just Now",
+            "comment_count": project.comments.count(),
+        })
+    return JsonResponse({"success":False,
+                         "error": form.errors.get("content", ["Invalid comment"])[0],
+                         }, status=400)

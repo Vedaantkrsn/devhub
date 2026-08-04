@@ -60,7 +60,41 @@ Full-stack Django social platform for developers to showcase projects. Single-ap
 
 - Still open from Phase 4 (per brief, non-core): global search bar, Popular Technologies / Suggested Developers sections. Hero section and Trending Projects are explicitly V2/future.
 
+## Phase 5: Interactions — 🔧 IN PROGRESS
 
+### Like — ✅ DONE
+- `Like` model already had `UniqueConstraint(user, project)` from Phase 1
+- `like` view — `@login_required`, `@require_POST`, `get_or_create`/`delete` toggle pattern, returns `JsonResponse({"liked": ..., "likes_count": ...})`
+- `home` view — annotates queryset with `is_liked` via `Exists(Like.objects.filter(project=OuterRef("pk"), user=request.user.profile))`, only when `request.user.is_authenticated` — avoids per-project queries (N+1 problem)
+- `project_detail` view — single-project version, plain attribute assignment (`project.is_liked = ...`) instead of queryset annotation, since only one object is in play (not a list)
+- AJAX via `fetch()` — no page reload, updates icon class (`bi-heart` / `bi-heart-fill`) and count span directly
+- Switched from emoji to Bootstrap Icons (`bi-heart`/`bi-heart-fill`) — requires bootstrap-icons CDN link in base.html
+
+### Bookmark — ✅ DONE (toggle only)
+- Mirrors Like pattern exactly — `Bookmark` model, `bookmark` view, `is_bookmarked` annotation, matching JS handler
+- 🔲 **"My Saved Projects" page still not built** — bookmark toggle works, but no page lists them yet. Plan: `Bookmark.objects.filter(user=request.user.profile)` or `Project.objects.filter(bookmarks__user=request.user.profile)`, reuse card markup from home feed
+
+### Comment — ✅ DONE
+- `Comment` model — `Meta.ordering = ["-created_at"]`, `related_name="comments"`
+- `CommentForm` — ModelForm, single `content` field, custom Textarea widget/placeholder
+- `comment` view — `@login_required`, `@require_POST`, `commit=False` → set `author`/`project` → save, returns JSON with comment data + `comment_count`
+- `project_detail` view — **removed accidental `@login_required`** (was blocking guests from viewing projects at all, violating the brief's "guests browse freely" rule). Guest vs. auth branching now matches the `home` view's pattern: `is_liked`/`is_bookmarked` default to `False` for anonymous users instead of crashing on `.profile`
+- `select_related("author", "author__user")` on comment queryset — avoids extra queries per comment when rendering author info
+- AJAX comment submission — posts via `fetch()` + `FormData`, inserts new comment into DOM live via `insertAdjacentHTML`, resets form, removes "no comments yet" placeholder
+- **Fixed: XSS gap** — raw `data.content` was being inserted as unescaped HTML in the JS template string; a comment containing HTML/script tags would have rendered as live markup instead of text. Escaped before insertion.
+- **Fixed: stale comment count** — JS wasn't updating `#comment-count-{{ project.pk }}` after posting; now uses `data.comment_count` from the view response
+
+### Still open in Phase 5 / v1
+- 🔲 My Saved Projects page (bookmark list view + template)
+- 🔲 Share button — brief only requires JS clipboard copy of project URL, no backend needed
+- 🔲 Triple-dot dropdown menu — currently a static `⋮` placeholder; needs real Bootstrap dropdown with Edit/Delete links (owner-only, pages already exist)
+- 🔲 Global search bar — categorized results across Project and Profile models; biggest remaining piece, comparable in scope to Phase 3
+
+### Cleanup / known debt
+- `like.html` and `bookmark.html` template partials are unused dead files — card markup is duplicated inline in `home.html`/`project_detail.html` instead. Either delete the partials or actually `{% include %}` them to avoid maintaining duplicate button markup across pages.
+- Guest interaction UX gap (noted, not yet fixed): if a guest triggers a Like/Bookmark/Comment fetch call, `@login_required` redirects the request server-side, but since it's AJAX, the JS just fails silently instead of prompting login. Not urgent, but worth fixing before this is shown to real guest users.
+
+## Next: Share (quick) → Triple-dot menu → Saved Projects page → Search bar
 
 ## Known gotchas hit (additional)
 - `redirect()` and `{% url %}` calls must match the exact kwarg name used in the URL pattern (`pk` vs `project_id`) — same class of bug as the earlier `login`/`user_login` mismatch
