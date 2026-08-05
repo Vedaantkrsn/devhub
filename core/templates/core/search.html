@@ -1,0 +1,82 @@
+{% extends "core/base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+
+<h2 class="mb-4">
+    Search Results for "{{ query }}"
+</h2>
+
+<div class="row">
+    <!-- Projects -->
+    <div class="col-lg-9">
+        <h4 class="mb-3">Projects</h4>
+        <div class="row">
+            {% for project in projects %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if project.screenshot %}
+                        <img src="{{ project.screenshot.url }}"
+                             class="card-img-top"
+                             style="height:170px; object-fit:cover;"
+                             alt="{{ project.title }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="{% url 'project_detail' pk=project.pk %}"
+                               class="text-decoration-none">
+                                {{ project.title }}
+                            </a>
+                        </h5>
+                        <p class="card-text text-muted small">
+                            {{ project.description|truncatewords:15 }}
+                        </p>
+                        <small class="text-muted">
+                            by
+                            <a href="{% url 'profile_page' username=project.author.user.username %}">
+                                {{ project.author.user.username }}
+                            </a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p>No matching projects.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Developers -->
+    <div class="col-lg-3">
+        <h4 class="mb-3">Developers</h4>
+        {% for developer in developers %}
+        <div class="border rounded p-2 mb-2">
+            <div class="d-flex align-items-center">
+                {% if developer.profile_picture %}
+                    <img src="{{ developer.profile_picture.url }}"
+                        class="rounded-circle me-3"
+                        width="45"
+                        height="45">
+                {% else %}
+                    <i class="bi bi-person-circle fs-2 me-3"></i>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <a href="{% url 'profile_page' username=developer.user.username %}"
+                    class="fw-semibold text-decoration-none text-dark">
+                        {{ developer.user.username }}
+                    </a>
+                    <div class="small text-muted">
+                        {{ developer.skills.first.name|default:"No skills yet" }}
+
+                        {% if developer.skills.count > 1 %}
+                            +{{ developer.skills.count|add:"-1" }} more
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No matching developers.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

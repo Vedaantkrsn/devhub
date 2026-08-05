@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
-from django.db.models import Exists,OuterRef
+from django.db.models import Exists,OuterRef,Q
 
 # Create your views here.
 def register(request):
@@ -24,6 +24,7 @@ def register(request):
 
 def home(request):
     projects=Project.objects.all().order_by("-published_at")
+
     if request.user.is_authenticated:
         projects=projects.annotate(
             is_liked=Exists(
@@ -193,3 +194,28 @@ def comment(request,pk):
     return JsonResponse({"success":False,
                          "error": form.errors.get("content", ["Invalid comment"])[0],
                          }, status=400)
+
+def search(request):
+    query=request.GET.get("q","").strip()
+    projects=Project.objects.none()
+    developers=Profile.objects.none()
+
+    if query:
+        projects=Project.objects.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query) |
+            Q(category__icontains=query) |
+            Q(author__user__username__icontains=query) |
+            Q(technologies__name__icontains=query)
+        ).distinct()
+
+        developers=Profile.objects.filter(
+            Q(user__username__icontains=query) |
+            Q(bio__icontains=query) |
+            Q(organization__icontains=query) |
+            Q(location__icontains=query) |
+            Q(skills__name__icontains=query)
+        ).distinct()
+    return render(request, "core/search.html", {"query":query,
+                                                "projects":projects,
+                                                "developers":developers})

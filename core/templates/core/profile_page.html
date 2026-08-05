@@ -93,6 +93,7 @@
     <p>No projects published yet.</p>
 {% endfor %}
 
+{% if user.is_authenticated and user.profile == profile %}
 <hr class="my-5">
 <h3>Bookmarked Projects</h3>
 {% for project in bookmarked_projects %}
@@ -114,5 +115,6 @@
 {% empty %}
 <p>No bookmarked projects yet.</p>
 {% endfor %}
+{% endif %}
 
 {% endblock %}

@@ -16,4 +16,5 @@ urlpatterns = [
     path("project/<int:pk>/like/", views.like, name="like"),
     path("project/<int:pk>/bookmark/", views.bookmark, name="bookmark"),
     path("project/<int:pk>/comment/",views.comment,name="comment"),
+    path("search/", views.search, name="search"),
 ]

@@ -3,17 +3,11 @@
 {% block title %}Home - DevHub{% endblock %}
 
 {% block content %}
-    
     <h2 class="mb-4">Latest Projects</h2>
-
     {% if projects %}
-
         {% for project in projects %}
-
         <div class="card mb-4 shadow-sm">
-
             <div class="card-body">
-
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -134,7 +128,9 @@
                     </div>
 
                     <div>
-                        ↗ Share
+                        <button class="share-btn btn btn-link p-0" data-project-id="{{ project.pk }}">
+                            <i class="bi bi-share"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -152,6 +148,7 @@
         const likeButtons = document.querySelectorAll(".like-btn");
         const bookmarkButtons = document.querySelectorAll(".bookmark-btn");
         const commentForm = document.getElementById("comment-form");
+        const shareButtons =document.querySelectorAll(".share-btn");
 
         likeButtons.forEach(button => {
             button.addEventListener("click", function () {
@@ -206,6 +203,32 @@
                     }
 
                 });
+            });
+        });
+        shareButtons.forEach(button => {
+            button.addEventListener("click", async function () {
+                const projectId=button.dataset.projectId;
+                const projectUrl = `${window.location.origin}/project/${projectId}/`;
+                if(navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: "Check out this project on DevHub",
+                            url: projectUrl
+                        });
+                    } catch (err) {
+                        if (err.name !== "AbortError") {
+                            console.error("Error sharing:", err);
+                        }
+                    }
+                }
+                else {
+                    try {
+                        await navigator.clipboard.writeText(projectUrl);
+                        alert("Project URL copied to clipboard!");
+                    } catch (err) {
+                        alert("Couldn't copy the link.");
+                    }
+                }
             });
         });
 
